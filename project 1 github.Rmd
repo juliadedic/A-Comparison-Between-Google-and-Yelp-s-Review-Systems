@@ -1,0 +1,737 @@
+---
+title: 'Project 1: I can't Yelp but Google if customers are McHappy'
+---
+**Julia Dedic**
+
+McDonald's is a giant international fast-food chain that feeds about 68 million people per day worldwide. Consequently, there is a lot of online reviews of McDonald's with the majority of these reviews found on two major websites; Google and Yelp. Focusing on a significant population of McDonald's restaurants in Ontario, do the reviews of McDonald's vary between these two websites?
+
+The primary questions of interest of this analysis are the following:  
+
+1. Does the star rating of McDonalds vary between Google and Yelp in Ontario?  
+2. Are there more positive/negative comments of McDonalds in Google or Yelp reviews? What are the most common words used among the two review sites?   
+3. Among the three most populated cities in Ontario; Toronto, Mississauga, and Ottawa, is there a difference in star ratings of McDonald's? Do the star ratings in each city different by review site?
+
+**Data Collection Methodology**
+
+Data was collected using Google and Yelp APIs to access their reviews on McDonalds. The Google reviews were collected from 54 Ontario McDonald's location and the Yelp reviews were collected from 50 Ontario McDonald's locations. Additional searches were done using both Google and Yelp API's to collect reviews from both sites in three major cities in Ontario, namely Toronto, Mississauga, and Ottawa. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+##Exploratory Data Analysis
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#Google Reviews
+library(googleway)
+library(tidyverse)
+library(dplyr)
+#To collect rating data from Google reviews in Ontario of McDonalds 
+res_goog <- google_places(search_string = "McDonalds in Ontario, Canada", key ="AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8")  
+
+#knitr::kable(head(res_goog$results %>% select(formatted_address,rating)))
+res_goog2 <- google_places(search_string = "McDonalds in Ontario, Canada", key ="AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8", page_token = "CoQC_AAAADqcOAdM8A4Wj2Yci-pM8OzzPkeg6VJcSD8PONxpomCaR1_Xi0jyCVE06_UTiBIQfFODblAHk8ldJI4OL5wxxwVKez0hiQgKHFP8y9ScwBVk2Y_24lZgp2wKjFYvHy7kHHg0ioS2uodqqbp16FhTGpbee9d15MgFtN7h7uQrQNThwqu5q06_Im32Vk0DbjfilqCUPndGOgL7RTqco3AIhDJWnaYPzf_5uVMfP-Gmt0hMyzGUfjRwgjSujai5VsGRATl-Wpsl5cWhYI7QnHwX2i6Pxx2CChVxWRKRnMGF2YZh2KglsSR9TBb2ONoRcOudp2g9nVk_E9UKahcqkNuTP90SEMVcJ82srMy-MQfwa68oaNQaFOJNpUrIo8ZII00JqIIsiRJTVkWW")
+
+res_goog3 <- google_places(search_string = "McDonalds in Ontario, Canada", key ="AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8", page_token = "CqQDnAEAAEmfTHDK_Z5Ut8DVANzWntehSTbfr8Qw1PwFW5vBIRJ43AMuPvjcYXxaB1NJTuXbCZn0aruA7HzkZx48VyteQP5KJrsQoIEpZFtnmzWiYqk5GOaI5-fN1zgXia_heGI1uFv2kf1L39VQ_UEM9xAnTPp3RSIqeQl2hPh0jF2vW7773Mm7TJLgzqSTncwOpQ-1RguUFrQZtnzSGHJYu-ABrENM0dcIdxba3YdEgsdwk0-2aYcURNWtyr5UyhtHuH5_wOLNWJj62yu2jDng70UheDpxBxDCzNFJUYbtUBTynHq2CETjPX3n5Hyxw0SIton7pNT9oeM3ipqX3eTFl6YOPyJEGIv-oSMg_1rEfSrGMfugAakufI3DG8NXe7mTwm2sUJWEeqmDD2GrfDsctJphENNtdKuN4Rjo47E4pxciYOTXCZgOgcb6P81J1edT-SJCEzuaptkmT6PXf4pSN8tY3VtRByLOM399x9YHYuWv6bmMdlD3C8c607Aqtw6lxk7Cd99b_CmmtR6mwjacIH5Jry2k-ZQGbIirXO1RcTtc0NXvEhBV5P5E5uSOU_v7TizeN27sGhTQEvAXeAgF9gnsMg10lptjfGxG-g")
+
+#accessing 54 Mcdonalds locations  
+```
+
+```{r,cache=TRUE,message=FALSE,warning=FALSE}
+#Gathering all the review information from each of the 3 search pages on Google
+reviews_cats = c()
+
+res_goog_reviews1 = c()
+for (i in 1:20){
+  res_goog_reviews1 = c(res_goog_reviews1,google_place_details(place_id = res_goog$results$place_id[i],key = "AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8"))
+}
+
+res_goog_reviews2 = c()
+for (i in 1:20){
+  res_goog_reviews2 = c(res_goog_reviews2,google_place_details(place_id = res_goog2$results$place_id[i],key = "AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8"))
+}
+
+res_goog_reviews3 = c()
+for (i in 1:14){
+  res_goog_reviews3 = c(res_goog_reviews3,google_place_details(place_id = res_goog3$results$place_id[i],key = "AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8"))
+}
+
+#Combining the 3 pages of reviews (all 54) into one data frame
+total_res_goog_reviews = c(res_goog_reviews1, res_goog_reviews2, res_goog_reviews3)
+
+# Collecting all Google Reviews text contained in total_res_goog_reviews
+reviews_cats=c()
+for (i in 0:160){
+  if (!is.null(total_res_goog_reviews[i]$result$reviews$text)){
+    reviews_cats = c(reviews_cats, total_res_goog_reviews[i]$result$reviews$text)
+  }
+}
+#Turning reviews text into a matrix 
+count=1
+review <- matrix(ncol=1, nrow=165)
+for (i in 1:165){
+  
+  review[count,] <- reviews_cats[i]
+  count = count + 1
+  
+}
+# Data frame containing all Google Reviews
+review_df <- data.frame(line = 1:165, text = review, stringsAsFactors = FALSE)
+
+##knitr::kable(total_res_goog_reviews$result$reviews %>% select(rating, text))
+```
+
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#Plotting the frequent words within all reviews for McDonalds
+library(tidytext)
+google_words <-(review_df %>% unnest_tokens(word,text))
+#a=google_words %>% count(word,sort=T) %>% slice(1:20) %>% ggplot(aes(x = reorder(word, n, function(n) -n), y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + ggtitle("             Common Words for Mcdonalds reviews on Google")+ xlab("words in reviews") + ylab("frequency of words")
+#a + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+```
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#Creating a list of stop words to find the frequency of more useful words in the reviews
+my_stop_words <- stop_words %>% select(-lexicon) %>% 
+  bind_rows(data.frame(word = c("the", "I", "of", "and","this","was","I've","an", "to", "a", "mcdonald's", "mcdonalds", "food")))
+
+google_words_interesting <- google_words %>% anti_join(my_stop_words) 
+
+#a1=google_words_interesting %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word, 
+    #n, function(n) -n), y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, 
+    #hjust = 1)) + ggtitle("          Common Words for Mcdonalds reviews on Google")+ xlab("words in reviews") + ylab("frequency of words")
+#a1 + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+```
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#Viewing the sentiments of the reviews made by customers for McDonalds in Google
+bing_lex <- get_sentiments("nrc")
+
+fn_sentiment_goog <- google_words_interesting %>% left_join(bing_lex)
+
+```
+
+
+```{r,cache=TRUE,message=FALSE,warning=FALSE}
+#Average star rating and the variation among 54 McDonalds restaurants in Canada from Google
+v=c()
+for (i in 1:length(res_goog$results$rating)){
+  v=c(v,res_goog$results$rating[i])
+  
+}
+w=c()
+for (i in 1:length(res_goog2$results$rating)){
+  w=c(w,res_goog2$results$rating[i])
+}
+y=c()
+for (i in 1:length(res_goog3$results$rating)){
+  y=c(y,res_goog3$results$rating[i])
+}
+
+j=c(v,w,y)
+
+
+#sd(j)
+#mean(j)
+
+```
+
+
+```{r,cache=TRUE,message=FALSE,warning=FALSE}
+#Comparing Major Cities in Ontario Star Ratings and Reviews of McDonalds
+#Toronto
+
+res_goog_toronto <- google_places(search_string = "McDonalds in Toronto, Ontario", key ="AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8") 
+#average star rating for toronto
+
+t=c()
+for (i in 1:length(res_goog_toronto$results$rating)){
+  t=c(t,res_goog_toronto$results$rating[i])
+  
+}
+#mean(t)
+#sd(t)
+
+#Reviews in Toronto
+
+#Gathering all review information from res_goog_toronto
+res_goog_toronto_reviews = c()
+for (i in 1:20){
+  res_goog_toronto_reviews = c(res_goog_toronto_reviews,google_place_details(place_id = res_goog_toronto$results$place_id[i],key = "AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8"))
+}
+reviews_toronto_text=c()
+
+# Collecting all Google Reviews text contained in res_goog_toronto_reviews
+for (i in 0:100){
+  if (!is.null(res_goog_toronto_reviews[i]$result$reviews$text)){
+    reviews_toronto_text = c(reviews_toronto_text, res_goog_toronto_reviews[i]$result$reviews$text)
+  }
+}
+#Turning reviews text into a matrix 
+count=1
+review_toronto <- matrix(ncol=1, nrow=100)
+
+for (i in 1:100){
+  
+  review_toronto[count,] <- reviews_toronto_text[i]
+  count = count + 1
+  
+}
+# Data frame containing all Toronto Google Reviews
+review_df_toronto <- data.frame(line = 1:100, text = review_toronto, stringsAsFactors = FALSE)
+
+#frequent words found in Toronto Reviews
+google_words_toronto <-(review_df_toronto %>% unnest_tokens(word,text))
+
+my_stop_words <- stop_words %>% select(-lexicon) %>% 
+  bind_rows(data.frame(word = c("the", "I", "of", "and","this","was","I've","an", "to", "a")))
+
+google_words_interesting_toronto <- google_words_toronto %>% anti_join(my_stop_words)
+
+#t1=google_words_interesting_toronto %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word,  n, function(n) -n), y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + ggtitle("   Common Words for Mcdonalds reviews on Google in Toronto")+ xlab("words in reviews") + ylab("frequency of words")
+#t1 + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+
+#sentiments of words found in Toronto reviews
+bing_lex <- get_sentiments("nrc")
+
+fn_sentiment <- google_words_interesting_toronto %>% left_join(bing_lex)
+
+
+```
+
+```{r,cache=TRUE,message=FALSE,warning=FALSE}
+#Mississauga
+
+res_goog_mississauga <- google_places(search_string = "McDonalds in Mississauga, Ontario", key ="AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8") 
+
+#average star rating for Mississauga
+
+m=c()
+for (i in 1:length(res_goog_mississauga$results$rating)){
+  m=c(m,res_goog_mississauga$results$rating[i])
+  
+}
+#mean(m)
+#sd(m)
+
+#Reviews in Mississauga
+
+#Gathering all review information from res_goog_mississauga
+res_goog_mississauga_reviews = c()
+for (i in 1:20){
+  res_goog_mississauga_reviews = c(res_goog_mississauga_reviews,google_place_details(place_id = res_goog_mississauga$results$place_id[i],key = "AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8"))
+}
+
+reviews_mississauga_text=c()
+# Collecting all Google Reviews text contained in res_goog_mississauga_reviews
+for (i in 0:100){
+  if (!is.null(res_goog_mississauga_reviews[i]$result$reviews$text)){
+    reviews_mississauga_text = c(reviews_mississauga_text, res_goog_mississauga_reviews[i]$result$reviews$text)
+  }
+}
+#Turning reviews text into a matrix 
+count=1
+review_mississauga <- matrix(ncol=1, nrow=100)
+
+for (i in 1:100){
+  
+  review_mississauga[count,] <- reviews_mississauga_text[i]
+  count = count + 1
+  
+}
+# Data frame containing all Toronto Google Reviews
+review_df_mississauga <- data.frame(line = 1:100, text = review_mississauga, stringsAsFactors = FALSE)
+
+#frequent words found in Toronto Reviews
+google_words_mississauga <-(review_df_mississauga %>% unnest_tokens(word,text))
+
+my_stop_words <- stop_words %>% select(-lexicon) %>% 
+  bind_rows(data.frame(word = c("the", "I", "of", "and","this","mcdonald's", "was","I've","an", "to", "a")))
+
+google_words_interesting_mississauga <- google_words_mississauga %>% anti_join(my_stop_words)
+
+#m1=google_words_interesting_mississauga %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word, n, function(n) -n), y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + ggtitle("Common Words for Mcdonalds reviews on Google in Mississauga")+ xlab("words in reviews") + ylab("frequency of words")
+#m1 + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+
+#sentiments of words found in mississauga reviews
+bing_lex <- get_sentiments("nrc")
+
+fn_sentiment <- google_words_interesting_mississauga %>% left_join(bing_lex)
+
+```
+
+```{r,cache=TRUE,message=FALSE,warning=FALSE}
+#Ottawa
+
+res_goog_ottawa <- google_places(search_string = "McDonalds in Ottawa, Ontario", key ="AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8") 
+
+#average star rating for ottawa
+
+o=c()
+for (i in 1:length(res_goog_ottawa$results$rating)){
+  o=c(o,res_goog_ottawa$results$rating[i])
+  
+}
+#mean(o)
+#sd(o)
+
+#Reviews in ottawa
+
+#Gathering all review information from res_goog_ottawa
+res_goog_ottawa_reviews = c()
+for (i in 1:20){
+  res_goog_ottawa_reviews = c(res_goog_ottawa_reviews,google_place_details(place_id = res_goog_ottawa$results$place_id[i],key = "AIzaSyAlbZd_Sup97P-3HAeen2kbsn1vP0GXcw8"))
+}
+
+reviews_ottawa_text=c()
+# Collecting all Google Reviews text contained in res_goog_mississauga_reviews
+for (i in 0:100){
+  if (!is.null(res_goog_ottawa_reviews[i]$result$reviews$text)){
+    reviews_ottawa_text = c(reviews_ottawa_text, res_goog_ottawa_reviews[i]$result$reviews$text)
+  }
+}
+#Turning reviews text into a matrix 
+count=1
+review_ottawa <- matrix(ncol=1, nrow=100)
+
+for (i in 1:100){
+  
+  review_ottawa[count,] <- reviews_ottawa_text[i]
+  count = count + 1
+  
+}
+# Data frame containing all Toronto Google Reviews
+review_df_ottawa <- data.frame(line = 1:100, text = review_ottawa, stringsAsFactors = FALSE)
+
+#frequent words found in Toronto Reviews
+google_words_ottawa <-(review_df_ottawa %>% unnest_tokens(word,text))
+
+my_stop_words <- stop_words %>% select(-lexicon) %>% 
+  bind_rows(data.frame(word = c("the", "I", "of", "and","this","mcdonald's", "was","I've","an", "to", "a")))
+
+google_words_interesting_ottawa <- google_words_ottawa %>% anti_join(my_stop_words)
+
+#o1=google_words_interesting_ottawa %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word, 
+    #n, function(n) -n), y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, 
+    #hjust = 1)) + ggtitle("Common Words for Mcdonalds reviews on Google in Ottawa")+ xlab("words in reviews") + ylab("frequency of words")
+#o1 + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+
+#sentiments of words found in ottawa reviews
+bing_lex_goog <- get_sentiments("nrc")
+
+fn_sentiment <- google_words_interesting_ottawa %>% left_join(bing_lex_goog)
+
+
+```
+
+
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#Yelp Reviews  
+#To collect data from Yelp reviews
+library(httr)
+res <- POST("https://api.yelp.com/oauth2/token",
+            body = list(grant_type = "client_credentials",
+                        client_id = "LUscfP9sfuiCGu_s8UDwLA",
+                        client_secret = "sTYXQBmGjJly65qfNBvK08RONgFTOCsTY4JPdyglppKJwnKaOzlZiYg00JbUkeL7"))
+token <- content(res)$access_token
+```
+
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+library(httr)
+library(tidyverse)
+yelp <- "https://api.yelp.com"
+term <- "McDonalds"
+location <- "Ontario"
+limit <- 50
+radius <- 40000
+
+url <- modify_url(yelp, path = c("v3", "businesses", "search"), 
+                  query = list(term = term, location=location, limit = limit,radius=radius))
+
+res_yelp <- GET(url, add_headers('Authorization' = paste("bearer", token)))
+#http_status(res_yelp)
+ct <- content(res_yelp)
+
+
+
+#Gathering all 150 McDonalds reviews from Yelp
+count=1
+output <- matrix(ncol=1, nrow=150)
+for (j in 1:50){
+    url_reviews <- modify_url(yelp, path = c("v3", "businesses", ct$businesses[[j]]$id,"reviews"))
+  res_yelp_reviews <- GET(url_reviews, add_headers('Authorization' = paste("bearer", token)))
+  ct_rev <- content(res_yelp_reviews)
+ for(i in 1:length(ct_rev$reviews)){
+  output[count,] <- ct_rev$reviews[[i]]$text
+  count = count + 1  
+ }
+}
+ 
+ #Data Frame for storing all 150 McDonalds reviews from Yelp 
+ output_df <- data.frame(line = 1:150, text = output, stringsAsFactors = FALSE)
+
+ 
+
+ 
+
+```
+
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#Plotting the frequent words within the reviews
+
+library(tidytext)
+library(dplyr)
+yelp_words <-(output_df %>% unnest_tokens(word,text)) 
+#q = yelp_words %>% count(word,sort=T) %>% slice(1:20) %>% ggplot(aes(x = reorder(word, n, function(n) -n), y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + ggtitle("             Common words used in McDonalds Yelp Reviews")+ xlab("Words used in McDonalds reviews") + ylab("Frequency of Words")
+#q + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+
+
+
+
+yelp_words <-(ct_rev$reviews$text %>% select(rating, text)) %>% unnest_tokens(word,text)
+yelp_words %>% count(word,sort=T) %>% slice(1:20) %>% ggplot(aes(x = reorder(word, n, function(n) -n), y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + xlab("")
+
+#Creating a list of stop words
+my_stop_words <- stop_words %>% select(-lexicon) %>% bind_rows(data.frame(word = c("the", "I", "of", "and","this","was","I've","an", "to", "is", "are","was", "they", "at", "me", "food", "mcdonalds", "mcdonald's")))
+
+yelp_words_interesting <- yelp_words %>% anti_join(my_stop_words)
+
+#q2=yelp_words_interesting %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word, n, function(n) -n) , y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + ggtitle("             Common words used in McDonalds Yelp Reviews")+ xlab("Words used in McDonalds reviews") + ylab("Frequency of Words")
+#q2 + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+```
+
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#Viewing the sentiments of the reviews made by customers for McDonalds
+bing_lex_yelp <- get_sentiments("nrc")
+
+fn_sentiment_yelp <- yelp_words_interesting %>% left_join(bing_lex_yelp)
+
+#fn_sentiment_yelp %>% filter(!is.na(sentiment)) %>% group_by(sentiment) %>% summarise(n=n())
+
+```
+
+
+```{r,cache=TRUE,message=FALSE,warning=FALSE}
+#Average Yelp star Rating for all 50 locations of McDonalds
+v2=c()
+for (i in 1:50){
+  v2=c(v2,ct$businesses[[i]]$rating)
+
+}
+#mean(v2)
+#sd(v2)
+```
+
+
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#Comparing Yelp Reviews in Major Cities
+
+
+#Toronto
+
+yelp <- "https://api.yelp.com"
+term <- "McDonalds"
+location <- "Toronto, Ontario"
+limit <- 20
+radius <- 40000
+
+url <- modify_url(yelp, path = c("v3", "businesses", "search"), 
+                  query = list(term = term, location=location, limit = limit,radius=radius))
+
+res_yelp_toronto <- GET(url, add_headers('Authorization' = paste("bearer", token)))
+#http_status(res_yelp)
+ct_toronto <- content(res_yelp_toronto)
+
+
+#Average Yelp star Rating for all 20 Toronto locations of McDonalds
+tor=c()
+for (i in 1:20){
+  tor=c(tor,ct_toronto$businesses[[i]]$rating)
+
+}
+#mean(tor)
+#sd(tor)
+
+#Gathering all Toronto reviews from Yelp
+count=1
+output_toronto <- matrix(ncol=1, nrow=54)
+for (j in 1:20){
+    url_reviews <- modify_url(yelp, path = c("v3", "businesses", ct_toronto$businesses[[j]]$id,"reviews"))
+  res_yelp_reviews_toronto <- GET(url_reviews, add_headers('Authorization' = paste("bearer", token)))
+  ct_rev_toronto <- content(res_yelp_reviews_toronto)
+ for(i in 1:length(ct_rev_toronto$reviews)){
+  output_toronto[count,] <- ct_rev_toronto$reviews[[i]]$text
+  count = count + 1  
+ }
+}
+ 
+#Data Frame for storing all 54 Mcdonalds reviews in Toronto from Yelp 
+output_df_toronto <- data.frame(line = 1:54, text = output_toronto, stringsAsFactors = FALSE)
+#class(output_df_toronto)
+ 
+#plotting freqency of common words found in Toronto reviews
+yelp_words_toronto <-(output_df_toronto %>% unnest_tokens(word,text)) 
+#Creating a list of stop words
+my_stop_words_toronto <- stop_words %>% select(-lexicon) %>% bind_rows(data.frame(word = c("the", "I", "of", "and","this","was","I've","an", "to", "is", "are","was","mcdonald's", "mcdonalds", "they", "at", "me")))
+
+yelp_words_interesting_toronto <- yelp_words_toronto %>% anti_join(my_stop_words_toronto)
+
+#ty=yelp_words_interesting_toronto %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word, n, function(n) -n) , y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + ggtitle("Common words used in McDonalds Yelp Reviews in Toronto")+ xlab("Words used in McDonalds reviews") + ylab("Frequency of Words")
+#ty + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+
+```
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#mississauga
+
+yelp <- "https://api.yelp.com"
+term <- "McDonalds"
+location <- "Mississauga, Ontario"
+limit <- 20
+radius <- 40000
+
+url <- modify_url(yelp, path = c("v3", "businesses", "search"), 
+                  query = list(term = term, location=location, limit = limit,radius=radius))
+
+res_yelp_mississauga <- GET(url, add_headers('Authorization' = paste("bearer", token)))
+#http_status(res_yelp)
+ct_mississauga <- content(res_yelp_mississauga)
+
+
+#Average Yelp star Rating for all 20 Mississauga locations of McDonalds
+mis=c()
+for (i in 1:20){
+  mis=c(mis,ct_mississauga$businesses[[i]]$rating)
+
+}
+#mean(mis)
+#sd(mis)
+
+#Gathering all Mississauga reviews from Yelp
+count=1
+output_mississauga <- matrix(ncol=1, nrow=59)
+for (j in 1:20){
+    url_reviews <- modify_url(yelp, path = c("v3", "businesses", ct_mississauga$businesses[[j]]$id,"reviews"))
+  res_yelp_reviews_mississauga <- GET(url_reviews, add_headers('Authorization' = paste("bearer", token)))
+  ct_rev_mississauga <- content(res_yelp_reviews_mississauga)
+ for(i in 1:length(ct_rev_mississauga$reviews)){
+  output_mississauga[count,] <- ct_rev_mississauga$reviews[[i]]$text
+  count = count + 1  
+ }
+}
+ 
+#Data Frame for storing all 59 Mcdonalds reviews in mississauga from Yelp 
+output_df_mississauga <- data.frame(line = 1:59, text = output_mississauga, stringsAsFactors = FALSE)
+#class(output_df_mississauga)
+ 
+#plotting freqency of common words found in Mississauga reviews
+yelp_words_mississauga <-(output_df_mississauga %>% unnest_tokens(word,text)) 
+#Creating a list of stop words
+my_stop_words_mississauga <- stop_words %>% select(-lexicon) %>% bind_rows(data.frame(word = c("the", "I", "of", "and","this","was","I've","an", "to", "is", "are","was","mcdonald's","1","2","3","4", "mcdonalds", "they", "at", "me")))
+
+yelp_words_interesting_mississauga <- yelp_words_mississauga %>% anti_join(my_stop_words_mississauga)
+
+#ty=yelp_words_interesting_mississauga %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word, n, function(n) -n) , y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + ggtitle("Common words used in McDonalds Yelp Reviews in Mississauga")+ xlab("Words used in McDonalds reviews") + ylab("Frequency of Words")
+#ty + theme(plot.title = element_text(color="red", size=14, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+```
+
+```{r, cache=TRUE,message=FALSE,warning=FALSE}
+#ottawa
+
+yelp <- "https://api.yelp.com"
+term <- "McDonalds"
+location <- "Ottawa, Ontario"
+limit <- 20
+radius <- 40000
+
+url <- modify_url(yelp, path = c("v3", "businesses", "search"), 
+                  query = list(term = term, location=location, limit = limit,radius=radius))
+
+res_yelp_ottawa <- GET(url, add_headers('Authorization' = paste("bearer", token)))
+ct_ottawa <- content(res_yelp_ottawa)
+
+
+#Average Yelp star Rating for all 20 ottawa locations of McDonalds
+ott=c()
+for (i in 1:20){
+  ott=c(ott,ct_ottawa$businesses[[i]]$rating)
+
+}
+#mean(ott)
+#sd(ott)
+
+#Gathering all ottawa reviews from Yelp
+count=1
+output_ottawa <- matrix(ncol=1, nrow=48)
+for (j in 1:20){
+    url_reviews <- modify_url(yelp, path = c("v3", "businesses", ct_ottawa$businesses[[j]]$id,"reviews"))
+  res_yelp_reviews_ottawa <- GET(url_reviews, add_headers('Authorization' = paste("bearer", token)))
+  ct_rev_ottawa <- content(res_yelp_reviews_ottawa)
+ for(i in 1:length(ct_rev_ottawa$reviews)){
+  output_ottawa[count,] <- ct_rev_ottawa$reviews[[i]]$text
+  count = count + 1  
+ }
+}
+ 
+#Data Frame for storing all 59 Mcdonalds reviews in ottawa from Yelp 
+output_df_ottawa <- data.frame(line = 1:48, text = output_ottawa, stringsAsFactors = FALSE)
+#class(output_df_ottawa)
+ 
+#plotting freqency of common words found in ottawa reviews
+yelp_words_ottawa <-(output_df_ottawa %>% unnest_tokens(word,text)) 
+#Creating a list of stop words
+my_stop_words_ottawa <- stop_words %>% select(-lexicon) %>% bind_rows(data.frame(word = c("the", "I", "of", "and","this","was","I've","an", "to", "is", "are","was","mcdonald's","1","2","3","4","30", "5", "mcdonalds", "they", "at", "me")))
+
+yelp_words_interesting_ottawa <- yelp_words_ottawa %>% anti_join(my_stop_words_ottawa)
+
+#oy=yelp_words_interesting_ottawa %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word, n, function(n) -n) , y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + ggtitle("  Common words used in McDonalds Yelp Reviews in Ottawa")+ xlab("Words used in McDonalds reviews") + ylab("Frequency of Words")
+#oy + theme(plot.title = element_text(color="red", size=14, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+
+```
+
+This section will focus on asessing the 3 primary questions of interest.   
+
+Beginning with the first question, notice that Google has a higher average rating compared to Yelp (star rating of 3.396 for Google and 2.18 for Yelp). <br />
+
+```{r}
+#boxplot of average star rating between Google and Yelp 
+j=c(v,w,y)
+B <- c(mean(j), mean(v2))
+colours <- c("blue", "yellow")
+barplot(B, main="Average Star Rating of McDonald's", xlab="Review Website", ylab="Average Star Rating", names.arg=c("Google","Yelp"),ylim=c(0,4.5),border="white", density=c(1000, 1000), col=colours)
+```
+<br />
+By conducting a bit of a statistical analysis, it can verify whether this difference in star rating is significant based on the sample of reviews from both websites. Observing the following t-test below, there is a significant result, namely there is sufficient evidence to conclude that there is a difference in average star ratings of McDonald's. Google seems to provide a higher star rating on average.
+
+```{r,cache=TRUE,message=FALSE,warning=FALSE}
+#Testing whether the average ratings of McDonalds between Google and Yelp are the same 
+j=c(v,w,y)
+t.test(j,v2)
+
+```
+
+Taking a look at question two, we can compare the frequency of words used in reviews between Google and Yelp and then compare the associated positive and negative sentiments of words used between the two websites.  
+
+Below shows two plots (one for Google and one for Yelp) showing the frequency of the most common words found in the reviews.
+
+```{r}
+library(dplyr)
+a1=google_words_interesting %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word, 
+    n, function(n) -n), y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, 
+    hjust = 1)) + ggtitle("          Common Words for Mcdonald's reviews on Google")+ xlab("words in reviews") + ylab("frequency of words")
+a1 + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+
+#frequency of words yelp
+
+q2=yelp_words_interesting %>% group_by(word) %>% tally(sort=TRUE) %>% slice(1:25) %>% ggplot(aes(x = reorder(word, n, function(n) -n) , y = n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + ggtitle("             Common words used in McDonald's Yelp Reviews")+ xlab("Words used in McDonalds reviews") + ylab("Frequency of Words")
+q2 + theme(plot.title = element_text(color="red", size=16, face="bold.italic"), axis.title.x = element_text(color="blue", size=14, face="bold"), axis.title.y = element_text(color="purple", size=14, face="bold"))
+```
+<br />
+After imploying a list of stop words (ie. removing important words that were common in reviews such as "I", "was", "mcdonalds"), the most common words found in McDonald's reviews on Google were "service", "drive", "staff", "location", and "clean". Doing the same analysis with Yelp, the most common words found were "drive", "service", "location", "time", and "friendly".   
+<br />
+Going further to analyze the sentiments of these words, classification of words into positive and negative sentiments was done using the NRC Emotion Lexicon which uses a dictionary of English words and determines their association with differernt emotions. Below is a comparison of the proportion of positve and negative words found in reviews between Google and Yelp.   
+
+```{r}
+
+#positve and negative words from Google versus Yelp
+
+#collecting number of pos and neg for google
+numPositiveWords_goog=0;
+numNegativewords_goog=0;
+totalnumberwords_goog=0;
+for(i in 1:length(fn_sentiment_goog$sentiment)){
+  if(!is.na(fn_sentiment_goog$sentiment[i])){
+    if(fn_sentiment_goog$sentiment[i]=="positive"){
+      numPositiveWords_goog=numPositiveWords_goog+1
+      totalnumberwords_goog=totalnumberwords_goog+1
+    }
+    else if (fn_sentiment_goog$sentiment[i]=="negative"){
+      numNegativewords_goog=numNegativewords_goog+1
+      totalnumberwords_goog=totalnumberwords_goog+1
+    }
+  }
+}
+
+google_proportionofpositive=100*numPositiveWords_goog/totalnumberwords_goog
+google_proportionofnegative=100*numNegativewords_goog/totalnumberwords_goog
+
+#collecting pos and neg number of words for yelp
+
+numPositiveWords_yelp=0;
+numNegativewords_yelp=0;
+totalnumberwords_yelp=0;
+for(i in 1:length(fn_sentiment_yelp$sentiment)){
+  if(!is.na(fn_sentiment_yelp$sentiment[i])){
+    if(fn_sentiment_yelp$sentiment[i]=="positive"){
+      numPositiveWords_yelp=numPositiveWords_yelp+1
+      totalnumberwords_yelp=totalnumberwords_yelp+1
+    }
+    else if (fn_sentiment_yelp$sentiment[i]=="negative"){
+      numNegativewords_yelp=numNegativewords_yelp+1
+      totalnumberwords_yelp=totalnumberwords_yelp+1
+    }
+  }
+}
+
+yelp_proportionofpositive=100*numPositiveWords_yelp/totalnumberwords_yelp
+yelp_proportionofnegative=100*numNegativewords_yelp/totalnumberwords_yelp
+
+#barplot comparing positive proportion of words between google and yelp
+prop_comp_pos=c(google_proportionofpositive,yelp_proportionofpositive)
+colours=c("Red","Blue")
+barplot(prop_comp_pos, main="Proportion of Positive Words between Google and Yelp",xlab="Review Website", ylab="% of Positive words", names.arg=c("Google","Yelp"),border="white", ylim=c(0,100),density=c(1000, 1000), col=colours)
+
+#barplot comparing negative proportion of words between google and yelp
+prop_comp_neg=c(google_proportionofnegative,yelp_proportionofnegative)
+colours=c("Red","Blue")
+barplot(prop_comp_neg, main="Proportion of Negative Words between Google and Yelp",xlab="Review Website", ylab="% of Negative words", names.arg=c("Google","Yelp"),border="white", ylim=c(0,100),density=c(1000, 1000), col=colours)
+
+```
+<br />
+We see that the proportion of postive words between Google and Yelp varies. Google has roughly 64.7% of all its words used as positive ones whereas Yelp has 61.75%. As well, Google has 35.33% of its words as negative, whereas Yelp has 38.25%. Hence, it seems Google may have "nicer" reviews on average than Yelp for McDonald's.  
+<br />
+
+Finally, assessing our final question of interest, we compared the average star rating of McDonald's between Google and Yelp for 3 major cities: Toronto, Mississauga, and Ottawa.  
+<br />
+```{r}
+#boxplot of average star ratings between Google and Yelp by city
+M=matrix(c(mean(t),mean(m),mean(o), mean(tor), mean(mis), mean(ott)), ncol=2, nrow=3)
+colours1 <- c("red", "orange", "blue")
+barplot(M, main="Average Star Rating of McDonald's", xlab="Review Website", ylab="Average Star Rating", names.arg=c("Google","Yelp"),ylim=c(0,5.5), legend.text=c("Toronto","Mississauga", "Ottawa"),args.legend = list(x = "topright"), border="white", density=c(1000, 1000,1000),col=colours1, beside=TRUE)
+
+```
+<br />
+-The average star rating for Toronto locations on Google is 3.085 whereas it is  3.525 on Yelp.    
+-The average star rating for Mississauga locations on Google is 3.26 whereas it is 3.35 on Yelp.  
+-The average star rating for Ottawa locations on Google is 3.16 whereas it is  3.35 on Yelp.    
+This seems to suggest that Google's average star ratings among the three major cities is lower compared to the Yelp's star ratings respectively. Also, Mississauga locations seems to have on average higher star ratings than Toronto and Ottawa, with Ottawa having the lowest average star rating between the three cities.  
+<br />
+
+After conducting some statistics analysis, the below t-tests show that we only have one significant result namely, there is a difference in average star ratings of McDonald's locations in Toronto between Google and Yelp. The other two t-tests imply that there is no significant difference in average star rating between Google and Yelp for Mississauga and Ottawa.
+<br />
+```{r}
+t.test(t,tor)
+t.test(m,mis)
+t.test(o,ott)
+
+```
+
+
+Overall, these results are particular interesting since Google on average has a higher overall star rating for Ontario locations than Yelp.
+
+##Limitations
+
+A few limitations of this analysis are as follows:  
+- The API limits from Google and Yelp limit the number of locations to 54 and 50 respecitvely that the reviews can be collected from.  
+-Number of characters is limited to 150 per review from Yelp so comparison of words between the websites is very limited.  
+-NRC Emotion Lexicon evaluates individual works rather than the sentiment of the enitre review, meaning it is possible for example, for the review to have more negative words but overall, be positive.
+
+##Conclusion
+
+Overall, McDonald's has a higher average star rating on Google, however, each of the three major cities has locations with  average star ratings on Google that are lower than the average star ratings on Yelp respectively. Google also seems to have a higher proportion of positive and negative words compared to Yelp but this may be due to the limitation mentioned above. Mississauga has the highest average star rating between the three cities on Google whereas, Toronto has the highest average star rating on Yelp betweeen the three. Toronto locations on Yelp have the highest average star rating overall. In conclusion, it seems there is variation between McDonald's reviews among the two review websites.
+
